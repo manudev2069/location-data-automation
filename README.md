@@ -1,143 +1,190 @@
-# Location Data Automation - MULTI FILE SELECT
+# Location Data Automation
 
-## Exactly how this version works
+Location Data Automation is a Python-based tool for validating, cleaning, correcting, and verifying CSV and Excel data before database processing.
 
-The program DOES NOT scan the `input` folder.
+## Features
 
-The program DOES NOT automatically process every file in the project.
+- Select one or multiple CSV/Excel files
+- Automatic data validation
+- Detect special characters and invalid symbols
+- Validate numeric fields
+- Validate date fields
+- Detect garbled or corrupted text
+- Detect unknown or new columns
+- Verify city, state, and country values
+- Safely auto-correct common data issues
+- Move invalid values to the `Unknown` field
+- Generate validation status for each row
+- Show real-time processing progress
+- Generate separate output files for each input file
 
-You decide which files to process AFTER pressing Run.
+## Supported File Formats
 
-### Step 1
-Open `main.py` in VS Code.
+- CSV (`.csv`)
+- Excel (`.xlsx`)
 
-### Step 2
-Click:
+## Project Structure
 
-**▶ Run Python File**
+```text
+Location_Data_Automation/
+│
+├── main.py
+├── app.py
+├── fast_validator.py
+├── location_verifier_fast.py
+├── requirements.txt
+├── README.md
+│
+└── reference/
+    └── locations.csv
 
-### Step 3
-A GUI opens with:
+    How It Works
+CSV / Excel File
+       ↓
+Data Validation
+       ↓
+Special Character Check
+       ↓
+Numeric & Date Validation
+       ↓
+Garbled Text Detection
+       ↓
+Unknown Column Detection
+       ↓
+Location Verification
+       ↓
+Safe Auto Correction
+       ↓
+Re-Validation
+       ↓
+Valid Data
+       ↓
+validated_data.csv
 
-**Select File(s)**
+Invalid or unresolved data is separated:
 
-Click it.
+Invalid / Unknown Data
+       ↓
+unknown_data.csv
+       ↓
+Manual Review / Correction
+Output
 
-### Step 4
-A normal Windows file picker opens.
-
-You can select:
-- one CSV
-- multiple CSV files
-- one Excel file
-- multiple Excel files
-- a mixture of CSV + XLSX
-
-To select multiple files in Windows:
-- hold `Ctrl` and click individual files, OR
-- hold `Shift` to select a range.
-
-Then click **Open**.
-
-### Step 5
-The selected files appear in the GUI list.
+For every selected file, a separate output folder is created.
 
 Example:
 
-```text
-Files selected: 3
-
-Master Location Ranking.xlsx
-Colleges.csv
-Institutes.csv
-```
-
-### Step 6
-Click:
-
-**▶ Start Automation**
-
-The GUI processes only the files you selected.
-
-It does NOT scan other files in the folder.
-
-## Progress
-
-The progress bar is for ALL selected files combined.
-
-It shows:
-- current file
-- current stage
-- percentage
-- processed rows / total rows
-- total Valid
-- total Unknown
-
-Example:
-
-```text
-File 2 of 3: Colleges.csv
-Verifying city: city
-
-████████████████░░░░░░░
-67.4%
-
-250,000 / 371,000 rows
-```
-
-## Output
-
-Every selected file gets its own output folder.
-
-Example:
-
-```text
 output/
+│
 ├── Master Location Ranking/
 │   ├── validated_data.csv
 │   ├── unknown_data.csv
 │   └── validation_report.csv
 │
-├── Colleges/
-│   ├── validated_data.csv
-│   ├── unknown_data.csv
-│   └── validation_report.csv
-│
-└── Institutes/
+└── Colleges/
     ├── validated_data.csv
     ├── unknown_data.csv
     └── validation_report.csv
-```
+validated_data.csv
 
-## Supported input
+Contains only records that successfully pass the validation checks.
 
-- `.csv`
-- `.xlsx`
+These records are intended for further database processing.
 
-The program does not require files to be placed in an `input` folder.
+unknown_data.csv
 
-You can select files from Desktop, Downloads, OneDrive, any project folder,
-or any other accessible location.
+Contains records with invalid, unknown, or unresolved values.
 
-## Setup
+validation_report.csv
 
-```powershell
-python -m venv .venv
-.venv\Scripts\activate
+Contains validation details including:
+
+Validation Status
+Correction Status
+Unknown Values
+Unknown Columns
+Validation Reasons
+Example
+
+If the input contains:
+
+City = Srinagar$
+
+The automation can safely correct it to:
+
+City = Srinagar
+
+The original problematic value is retained in the unknown information for tracking.
+
+For an invalid numeric value:
+
+city_rank = ABC
+
+The invalid value is removed from the main field and recorded as unknown.
+
+The row will be marked:
+
+Validation_Status = Unknown
+
+until the issue is resolved.
+
+Installation
+
+Install the required packages:
+
 pip install -r requirements.txt
-```
+Run the Application
 
-Required packages:
+Run:
 
-- pandas
-- openpyxl
+python main.py
 
-No `rapidfuzz` dependency is required.
+A GUI window will open.
 
-## Important
+Click:
 
-Before production use, replace `reference/locations.csv` with the team's
-complete approved Location Master.
+Select File(s)
 
-Only rows marked `Validation_Status = Valid` are written to
-`validated_data.csv`.
+Select one or multiple CSV/Excel files.
+
+Then click:
+
+▶ Start Automation
+
+The application will process the selected files and generate the output automatically.
+
+Validation Status
+Valid
+
+The record has passed the required validation checks and is ready for the next processing stage.
+
+Unknown
+
+The record contains an invalid, unknown, or unresolved value and requires review.
+
+Reference Data
+
+The file:
+
+reference/locations.csv
+
+contains the reference location data used for location verification.
+
+For production use, this sample reference data should be replaced with the organization's approved Location Master.
+
+Technology
+Python
+Pandas
+OpenPyXL
+Tkinter
+CSV
+Excel
+Reference-based Location Validation
+Future Scope
+PostgreSQL database integration
+Automated database upload
+Complete Location Master integration
+Advanced data quality validation
+Automated data quality reports
+Scheduled validation
+API-based validation
