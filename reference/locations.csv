@@ -1,0 +1,29 @@
+name,type,parent_name,country
+India,country,,India
+Rajasthan,state,,India
+Uttar Pradesh,state,,India
+Delhi,state,,India
+Maharashtra,state,,India
+Gujarat,state,,India
+Haryana,state,,India
+Punjab,state,,India
+Uttarakhand,state,,India
+Jaipur,city,Rajasthan,India
+Jodhpur,city,Rajasthan,India
+Udaipur,city,Rajasthan,India
+Kota,city,Rajasthan,India
+Ajmer,city,Rajasthan,India
+Bikaner,city,Rajasthan,India
+Meerut,city,Uttar Pradesh,India
+Lucknow,city,Uttar Pradesh,India
+Agra,city,Uttar Pradesh,India
+Noida,city,Uttar Pradesh,India
+Ghaziabad,city,Uttar Pradesh,India
+Kanpur,city,Uttar Pradesh,India
+Varanasi,city,Uttar Pradesh,India
+Prayagraj,city,Uttar Pradesh,India
+Mumbai,city,Maharashtra,India
+Pune,city,Maharashtra,India
+Ahmedabad,city,Gujarat,India
+Gurugram,city,Haryana,India
+Dehradun,city,Uttarakhand,India
