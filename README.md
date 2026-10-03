@@ -1,190 +1,55 @@
-# Location Data Automation
+# Location Data Automation - Final Fast Adaptive CSV Version
 
-Location Data Automation is a Python-based tool for validating, cleaning, correcting, and verifying CSV and Excel data before database processing.
+Generic, CSV-only data validation automation for large and differently structured datasets.
 
-## Features
+## Run
+1. Open the project in VS Code.
+2. Run `main.py` using **Run Python File**.
+3. In the GUI, select one or multiple CSV files.
+4. Click **Start Automation**.
 
-- Select one or multiple CSV/Excel files
-- Automatic data validation
-- Detect special characters and invalid symbols
-- Validate numeric fields
-- Validate date fields
-- Detect garbled or corrupted text
-- Detect unknown or new columns
-- Verify city, state, and country values
-- Safely auto-correct common data issues
-- Move invalid values to the `Unknown` field
-- Generate validation status for each row
-- Show real-time processing progress
-- Generate separate output files for each input file
+## Adaptive schema
+The system infers semantic roles from column names, sample values and reference/source evidence. Examples:
+- `city`, `city_name`, `City Name`, `location_city` -> CITY
+- `state`, `state_full_name`, `State Name`, `location_state` -> STATE
+- `state_code`, `state_short_code`, `State Code` -> STATE_CODE
+- `country`, `country_name`, `Country Name`, `location_country` -> COUNTRY
+- `area`, `area_name`, `locality`, `district` -> AREA
 
-## Supported File Formats
+Ambiguous fields are not blindly guessed.
 
-- CSV (`.csv`)
-- Excel (`.xlsx`)
+## Fast location verification
+The validator builds an in-memory hierarchy from the current CSV and verifies location relationships using unique normalized combinations:
+- City + State + Country
+- State + Country
+- State Code -> State Name mapping
 
-## Project Structure
+An optional reference file in `reference/locations.csv` is used where applicable. This prevents a small/incomplete reference file from incorrectly marking an entire master dataset as Unknown.
+
+## Outputs
+For each input file:
 
 ```text
-Location_Data_Automation/
-│
-├── main.py
-├── app.py
-├── fast_validator.py
-├── location_verifier_fast.py
-├── requirements.txt
-├── README.md
-│
-└── reference/
-    └── locations.csv
+output/<file-stem>/
+├── validated_data.csv
+├── unknown_data.csv
+├── validation_report.csv
+└── schema_report.csv
+```
 
-    How It Works
-CSV / Excel File
-       ↓
-Data Validation
-       ↓
-Special Character Check
-       ↓
-Numeric & Date Validation
-       ↓
-Garbled Text Detection
-       ↓
-Unknown Column Detection
-       ↓
-Location Verification
-       ↓
-Safe Auto Correction
-       ↓
-Re-Validation
-       ↓
-Valid Data
-       ↓
-validated_data.csv
+Only rows with `Validation_Status = Valid` are written to `validated_data.csv`.
 
-Invalid or unresolved data is separated:
+## Learning
+Approved/safe corrections are stored in:
 
-Invalid / Unknown Data
-       ↓
-unknown_data.csv
-       ↓
-Manual Review / Correction
-Output
+```text
+learning/learned_corrections.csv
+```
 
-For every selected file, a separate output folder is created.
+Future runs can reuse previously learned corrections.
 
-Example:
+## CSV only
+Excel/XLSX input is intentionally not supported. The project does not require `openpyxl`.
 
-output/
-│
-├── Master Location Ranking/
-│   ├── validated_data.csv
-│   ├── unknown_data.csv
-│   └── validation_report.csv
-│
-└── Colleges/
-    ├── validated_data.csv
-    ├── unknown_data.csv
-    └── validation_report.csv
-validated_data.csv
-
-Contains only records that successfully pass the validation checks.
-
-These records are intended for further database processing.
-
-unknown_data.csv
-
-Contains records with invalid, unknown, or unresolved values.
-
-validation_report.csv
-
-Contains validation details including:
-
-Validation Status
-Correction Status
-Unknown Values
-Unknown Columns
-Validation Reasons
-Example
-
-If the input contains:
-
-City = Srinagar$
-
-The automation can safely correct it to:
-
-City = Srinagar
-
-The original problematic value is retained in the unknown information for tracking.
-
-For an invalid numeric value:
-
-city_rank = ABC
-
-The invalid value is removed from the main field and recorded as unknown.
-
-The row will be marked:
-
-Validation_Status = Unknown
-
-until the issue is resolved.
-
-Installation
-
-Install the required packages:
-
-pip install -r requirements.txt
-Run the Application
-
-Run:
-
-python main.py
-
-A GUI window will open.
-
-Click:
-
-Select File(s)
-
-Select one or multiple CSV/Excel files.
-
-Then click:
-
-▶ Start Automation
-
-The application will process the selected files and generate the output automatically.
-
-Validation Status
-Valid
-
-The record has passed the required validation checks and is ready for the next processing stage.
-
-Unknown
-
-The record contains an invalid, unknown, or unresolved value and requires review.
-
-Reference Data
-
-The file:
-
-reference/locations.csv
-
-contains the reference location data used for location verification.
-
-For production use, this sample reference data should be replaced with the organization's approved Location Master.
-
-Technology
-Python
-Pandas
-OpenPyXL
-Tkinter
-CSV
-Excel
-Reference-based Location Validation
-Future Scope
-PostgreSQL database integration
-Automated database upload
-Complete Location Master integration
-Advanced data quality validation
-Automated data quality reports
-Scheduled validation
-API-based validation
+## Important
+Source-hierarchy verification means the system verifies consistency within the incoming dataset. It is not an independent government/third-party authority check. For externally authoritative verification, provide a trusted master/reference dataset.

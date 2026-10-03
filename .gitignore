@@ -8,8 +8,11 @@ __pycache__/
 *.pyc
 *.pyo
 
-# Output files
+# Runtime output
 output/
+
+# Learned runtime corrections (keep the folder, ignore generated data)
+learning/learned_corrections.csv
 
 # Temporary files
 *.tmp

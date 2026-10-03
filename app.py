@@ -5,11 +5,13 @@ import threading
 import queue
 import pandas as pd
 
-from fast_validator import FastValidator
+from adaptive_validator import AdaptiveValidator
 from location_verifier_fast import LocationVerifier
+from learning.learning_engine import LearningEngine
 
 PROJECT_DIR = Path(__file__).resolve().parent
 REFERENCE_FILE = PROJECT_DIR / "reference" / "locations.csv"
+LEARNING_FILE = PROJECT_DIR / "learning" / "learned_corrections.csv"
 OUTPUT_ROOT = PROJECT_DIR / "output"
 
 
@@ -33,6 +35,8 @@ class MultiFileAutomationApp:
         self.current_file_var = tk.StringVar(value="Current file: -")
         self.valid_var = tk.StringVar(value="Valid: 0")
         self.unknown_var = tk.StringVar(value="Unknown: 0")
+        self.learning_var = tk.StringVar(value="Learning: 0 saved | 0 new | 0 reused")
+        self.schema_var = tk.StringVar(value="Schema: 0 columns | 0 identified | 0 verified")
 
         self.build_ui()
         self.root.after(100, self.poll_events)
@@ -40,13 +44,13 @@ class MultiFileAutomationApp:
     def build_ui(self):
         tk.Label(
             self.root,
-            text="CSV / Excel Validation & Automation",
+            text="CSV Validation & Automation",
             font=("Segoe UI", 18, "bold")
         ).pack(pady=(18, 3))
 
         tk.Label(
             self.root,
-            text="Select one or multiple files after running the code",
+            text="Select one or multiple CSV files after running the code",
             font=("Segoe UI", 10)
         ).pack(pady=(0, 12))
 
@@ -165,15 +169,24 @@ class MultiFileAutomationApp:
             font=("Segoe UI", 10)
         ).pack(side="left", padx=20)
 
+        tk.Label(
+            self.root,
+            textvariable=self.learning_var,
+            font=("Segoe UI", 9, "bold")
+        ).pack(pady=(3, 2))
+
+        tk.Label(
+            self.root,
+            textvariable=self.schema_var,
+            font=("Segoe UI", 9)
+        ).pack(pady=(0, 8))
+
     def select_files(self):
         paths = filedialog.askopenfilenames(
             parent=self.root,
-            title="Select one or more CSV / Excel files",
+            title="Select one or more CSV files",
             filetypes=[
-                ("CSV files", "*.csv"),
-                ("Excel files", "*.xlsx"),
-                ("CSV and Excel files", "*.csv *.xlsx"),
-                ("All files", "*.*")
+                ("CSV files", "*.csv")
             ]
         )
 
@@ -259,17 +272,9 @@ class MultiFileAutomationApp:
                 encoding="utf-8-sig"
             )
 
-        if suffix == ".xlsx":
-            return pd.read_excel(
-                path,
-                dtype=str,
-                keep_default_na=False,
-                engine="openpyxl"
-            )
-
         raise ValueError(
             f"Unsupported file type: {path.name}. "
-            "Please select CSV or XLSX files."
+            "Please select CSV files only."
         )
 
     def worker(self):
@@ -290,7 +295,9 @@ class MultiFileAutomationApp:
             self.events.put(("total", total_rows))
 
             verifier = LocationVerifier(str(REFERENCE_FILE))
-            validator = FastValidator(verifier)
+            learning = LearningEngine(LEARNING_FILE)
+            self.events.put(("learning", learning.stats()))
+            validator = AdaptiveValidator(verifier, learning)
 
             completed_rows = 0
             total_valid = 0
@@ -314,7 +321,7 @@ class MultiFileAutomationApp:
                         status
                     ))
 
-                valid_df, unknown_df, summary = validator.process(
+                valid_df, unknown_df, summary, schema_df = validator.process(
                     df,
                     progress_callback=callback
                 )
@@ -339,6 +346,14 @@ class MultiFileAutomationApp:
                     encoding="utf-8-sig"
                 )
 
+                schema_df.to_csv(
+                    out_dir / "schema_report.csv",
+                    index=False,
+                    encoding="utf-8-sig"
+                )
+
+                learning.save()
+
                 pd.DataFrame([summary]).to_csv(
                     out_dir / "validation_report.csv",
                     index=False,
@@ -351,19 +366,29 @@ class MultiFileAutomationApp:
                 output_locations.append(str(out_dir))
 
                 self.events.put((
+                    "schema",
+                    summary.get("schema_columns", 0),
+                    summary.get("identified_columns", 0),
+                    summary.get("verified_columns", 0)
+                ))
+
+                self.events.put((
                     "progress_file",
                     completed_rows,
                     total_rows,
                     f"Completed: {path.name}"
                 ))
 
+            learning.save()
+            self.events.put(("learning", learning.stats()))
             self.events.put((
                 "done",
                 len(file_data),
                 total_rows,
                 total_valid,
                 total_unknown,
-                output_locations
+                output_locations,
+                learning.stats()
             ))
 
         except Exception as exc:
@@ -409,8 +434,20 @@ class MultiFileAutomationApp:
                     )
                     self.status_var.set(status)
 
+                elif kind == "learning":
+                    stats = event[1]
+                    self.learning_var.set(
+                        f"Learning: {stats["learned_total"]:,} saved | {stats["new_learned"]:,} new | {stats["reused"]:,} reused"
+                    )
+
+                elif kind == "schema":
+                    _, columns, identified, verified = event
+                    self.schema_var.set(
+                        f"Schema: {columns:,} columns | {identified:,} identified | {verified:,} verified"
+                    )
+
                 elif kind == "done":
-                    _, files_done, total_rows, valid, unknown, outputs = event
+                    _, files_done, total_rows, valid, unknown, outputs, learn_stats = event
 
                     self.running = False
                     self.select_btn.config(state="normal")
@@ -433,7 +470,10 @@ class MultiFileAutomationApp:
                         f"Completed files: {files_done}\n"
                         f"Total rows: {total_rows:,}\n"
                         f"Valid rows: {valid:,}\n"
-                        f"Unknown rows: {unknown:,}\n\n"
+                        f"Unknown rows: {unknown:,}\n"
+                        f"Learning saved: {learn_stats["learned_total"]:,}\n"
+                        f"New learning: {learn_stats["new_learned"]:,}\n"
+                        f"Reused learning: {learn_stats["reused"]:,}\n\n"
                         f"Output folders:\n{output_text}",
                         parent=self.root
                     )
